@@ -59,50 +59,50 @@ pub mod library {
     ///
     /// [#167]: https://github.com/intel/openvino-rs/issues/167
     // use std::path::PathBuf;
-use std::env;
+    use std::env;
 
-pub fn load() -> Result<(), String> {
-    // super::generated::load()?; // load symbols
+    pub fn load() -> Result<(), String> {
+        // super::generated::load()?; // load symbols
 
-    // library filename depending on OS
-    let libname = format!(
-        "{}openvino_c{}",
-        env::consts::DLL_PREFIX,
-        env::consts::DLL_SUFFIX
-    );
-    // base dir = folder of the current executable
-    let exe_dir = std::env::current_exe()
-        .map_err(|e| format!("Failed to get exe path: {e}"))?
-        .parent()
-        .ok_or("Executable has no parent directory")?
-        .to_path_buf();
-    // candidate relative paths
-    let candidates = [
-        exe_dir.join("").join(&libname),
-        exe_dir.join("target/release").join(&libname),
-        exe_dir.join("resources/public/backend").join(&libname),
-        exe_dir.join("resources/target").join(&libname),
-        exe_dir.join("../Resources/public/backend").join(&libname),
-    ];
+        // library filename depending on OS
+        let libname = format!(
+            "{}openvino_c{}",
+            env::consts::DLL_PREFIX,
+            env::consts::DLL_SUFFIX
+        );
+        // base dir = folder of the current executable
+        let exe_dir = std::env::current_exe()
+            .map_err(|e| format!("Failed to get exe path: {e}"))?
+            .parent()
+            .ok_or("Executable has no parent directory")?
+            .to_path_buf();
+        // candidate relative paths
+        let candidates = [
+            exe_dir.join("").join(&libname),
+            exe_dir.join("target/release").join(&libname),
+            exe_dir.join("resources/public/backend").join(&libname),
+            exe_dir.join("resources/target").join(&libname),
+            exe_dir.join("../Resources/public/backend").join(&libname),
+            exe_dir.join("../Resources/").join(&libname),
+        ];
 
-    // pick the first that exists
-    let path = candidates
-        .iter()
-        .find(|p| p.exists())
-        .ok_or_else(|| "Could not find OpenVINO runtime library in app paths".to_string())?;
+        // pick the first that exists
+        let path = candidates
+            .iter()
+            .find(|p| p.exists())
+            .ok_or_else(|| "Could not find OpenVINO runtime library in app paths".to_string())?;
 
-    super::generated::load_from(path.clone())?;
+        super::generated::load_from(path.clone())?;
 
-    let version = get_version()?;
-    if is_pre_2025_1_version(&version) {
-        return Err(format!(
+        let version = get_version()?;
+        if is_pre_2025_1_version(&version) {
+            return Err(format!(
             "OpenVINO version is too old (see https://github.com/intel/openvino-rs/issues/167): {version}"
         ));
+        }
+
+        Ok(())
     }
-
-    Ok(())
-}
-
 
     /// Retrieve the OpenVINO library's version string.
     fn get_version() -> Result<String, String> {
