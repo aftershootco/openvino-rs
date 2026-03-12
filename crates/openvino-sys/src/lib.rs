@@ -83,7 +83,7 @@ pub mod library {
             exe_dir.join("resources/public/backend").join(&libname),
             exe_dir.join("resources/target").join(&libname),
             exe_dir.join("../Resources/public/backend").join(&libname),
-            exe_dir.join("../Resources/").join(&libname),
+            exe_dir.join("../Resources").join(&libname),
         ];
 
         // pick the first that exists
