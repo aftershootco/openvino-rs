@@ -49,6 +49,9 @@ pub mod library {
     /// shared library; with the `dynamic-linking` feature, this function does nothing since the
     /// library has already been linked.
     ///
+    /// If an `openvino_c` library is bundled alongside the current executable, it takes precedence
+    /// over the libraries discovered by `openvino-finder` (see `bundled_library`).
+    ///
     /// # Errors
     ///
     /// When compiled with the `runtime-linking` feature, this may fail if the `openvino-finder`
@@ -59,8 +62,39 @@ pub mod library {
     ///
     /// [#167]: https://github.com/intel/openvino-rs/issues/167
     pub fn load() -> Result<(), String> {
-        super::generated::load()?;
+        match bundled_library() {
+            Some(path) => super::generated::load_from(path)?,
+            None => super::generated::load()?,
+        }
         check_version()
+    }
+
+    /// Locate an `openvino_c` library bundled alongside the current executable.
+    ///
+    /// Applications that ship their own copy of the OpenVINO runtime (a common desktop
+    /// deployment) should use that copy rather than whatever the `openvino-finder` search paths
+    /// turn up, so that the process stays on the OpenVINO build the application was tested
+    /// against. This probes the usual layouts of a bundled application: next to the executable,
+    /// in a `resources/` directory beside it, and in the `Contents/Resources` directory of a
+    /// macOS application bundle.
+    fn bundled_library() -> Option<PathBuf> {
+        const BUNDLED_SUBDIRECTORIES: &[&str] = &[
+            "",
+            "resources/public/backend",
+            "resources/target",
+            "../Resources/public/backend",
+            "../Resources",
+        ];
+        let library = format!(
+            "{}openvino_c{}",
+            std::env::consts::DLL_PREFIX,
+            std::env::consts::DLL_SUFFIX
+        );
+        let executable_dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+        BUNDLED_SUBDIRECTORIES
+            .iter()
+            .map(|subdirectory| executable_dir.join(subdirectory).join(&library))
+            .find(|path| path.is_file())
     }
 
     /// Load the OpenVINO shared library from an explicit path.
